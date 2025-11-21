@@ -145,15 +145,3 @@ LevelUp can also serve as a foundation for:
 	•	Fitness beginners
 	•	Gamers looking for motivation
 	•	Individuals wanting accountability
-
-⸻
-
--Want Chapter 1 Fully Written?-
-
-I can provide:
-✔ Background of the Study
-✔ Statement of the Problem
-✔ Objectives (General & Specific)
-✔ Scope and Limitations
-✔ Significance of the Study
-✔ Definition of Terms
