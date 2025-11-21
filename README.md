@@ -7,7 +7,7 @@ Velos, John David V.
 
 📘 DETAILED SYSTEM DESCRIPTION
 
-LEVELUP – DETAILED SYSTEM DESCRIPTION
+LevelUP – DETAILED SYSTEM DESCRIPTION
 
 LevelUp is a gamified fitness and wellness tracking system designed to motivate users through RPG-style progression, daily quests, automatic penalties, and reward unlocking. Inspired by progression systems similar to Solo Leveling, the platform turns real-life health habits into actionable “leveling” mechanics.
 
@@ -18,15 +18,10 @@ The system encourages users to complete daily tasks—such as completing workout
 💠 CORE SYSTEM CONCEPTS
 1. User Progression
 Each user starts at Level 1 with baseline XP. Users earn experience by:
-
 •	Completing daily challenges
-
 •	Logging workouts
-
 •	Logging meals
-
 •	Completing quests
-
 •	Maintaining streaks
 
 As XP increases, the user levels up — unlocking new rewards, earning titles, and improving their account status.
@@ -37,10 +32,10 @@ Users who consistently fail daily challenges accumulate Penalty Points, decreasi
 
 2. Daily Challenge System (Main Feature)
 Every day at midnight, the system assigns a new Daily Challenge to each user. Challenges vary by intensity and type, such as:
-	•	“Burn 200 calories today.”
-	•	“Complete a 20-minute workout.”
-	•	“Log 2 healthy meals.”
-	•	“Walk 5,000 steps.”
+•	“Burn 200 calories today.”
+•	“Complete a 20-minute workout.”
+•	“Log 2 healthy meals.”
+•	“Walk 5,000 steps.”
 
 Daily Challenges must be completed before the day ends.
 ✔ Completing the daily challenge:
