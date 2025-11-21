@@ -13,7 +13,6 @@ The system encourages users to complete daily tasks—such as completing workout
 💠 CORE SYSTEM CONCEPTS
 
 1. User Progression
-
 Each user starts at Level 1 with baseline XP. Users earn experience by:
 	•	Completing daily challenges
 	•	Logging workouts
@@ -28,7 +27,6 @@ Users who consistently fail daily challenges accumulate Penalty Points, decreasi
 ⸻
 
 2. Daily Challenge System (Main Feature)
-
 Every day at midnight, the system assigns a new Daily Challenge to each user. Challenges vary by intensity and type, such as:
 	•	“Burn 200 calories today.”
 	•	“Complete a 20-minute workout.”
@@ -36,7 +34,6 @@ Every day at midnight, the system assigns a new Daily Challenge to each user. Ch
 	•	“Walk 5,000 steps.”
 
 Daily Challenges must be completed before the day ends.
-
 ✔ Completing the daily challenge:
 	•	Grants XP
 	•	Increases the Streak
@@ -44,7 +41,6 @@ Daily Challenges must be completed before the day ends.
 	•	Boosts the user’s sense of progress
 
 ✖ Failing the daily challenge:
-
 Automatically triggers a Penalty, such as:
 	•	XP deduction
 	•	Streak reset
@@ -56,7 +52,6 @@ This mechanism promotes consistent daily engagement, similar to daily quests in 
 ⸻
 
 3. Workouts Module
-
 Users can log workouts, including:
 	•	Workout name
 	•	Duration
@@ -68,7 +63,6 @@ XP calculations are performed based on the difficulty and duration. Workouts can
 ⸻
 
 4. Meal Logging Module
-
 To promote healthier eating habits, the system allows users to log meals with attributes such as:
 	•	Meal type (breakfast/lunch/dinner/snack)
 	•	Calorie count
@@ -81,7 +75,6 @@ Meals may also be part of Daily Challenges (example: “Log 3 healthy meals toda
 ⸻
 
 5. Quests
-
 Quests function as longer-term tasks compared to daily challenges.
 Examples include:
 	•	“Complete 5 workouts this week.”
@@ -98,7 +91,6 @@ Failing a quest may trigger an optional penalty, depending on the quest type.
 ⸻
 
 6. Rewards System
-
 Users receive rewards for completing milestones. Rewards may include:
 	•	Badges
 	•	Titles
@@ -111,7 +103,6 @@ Rewards are stored in each user’s inventory once claimed. Some rewards unlock 
 ⸻
 
 7. Streak System
-
 The system track how many consecutive days the user completes Daily Challenges.
 Each day the streak increases:
 	•	XP gain multiplier increases
@@ -126,7 +117,6 @@ High streaks create strong habit-reinforcement by rewarding consistency.
 ⸻
 
 8. Penalty System (Failure Management)
-
 Penalties are applied automatically when:
 	•	The user fails a Daily Challenge
 	•	The user fails a Quest
