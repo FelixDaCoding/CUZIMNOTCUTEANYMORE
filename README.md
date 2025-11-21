@@ -11,10 +11,9 @@ The system encourages users to complete daily tasks—such as completing workout
 ⸻
 
 💠 CORE SYSTEM CONCEPTS
-
 1. User Progression
 Each user starts at Level 1 with baseline XP. Users earn experience by:
-	•	Completing daily challenges
+•	Completing daily challenges
 	•	Logging workouts
 	•	Logging meals
 	•	Completing quests
