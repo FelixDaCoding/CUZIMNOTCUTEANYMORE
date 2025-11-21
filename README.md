@@ -1,8 +1,12 @@
 # CAPSTONE-CSIT227-F2
 Banzon, Joseph Xeno O.
+
 De Leon, Carlos James R.
+
 Escasinas, Edian Lyle P.
+
 Ponce, Felix Kristian T.
+
 Velos, John David V.
 
 📘 DETAILED SYSTEM DESCRIPTION
