@@ -1,4 +1,9 @@
 # CAPSTONE-CSIT227-F2
+Banzon, Joseph Xeno O.
+De Leon, Carlos James R.
+Escasinas, Edian Lyle P.
+Ponce, Felix Kristian T.
+Velos, John David V.
 
 📘 DETAILED SYSTEM DESCRIPTION
 
@@ -13,6 +18,7 @@ The system encourages users to complete daily tasks—such as completing workout
 💠 CORE SYSTEM CONCEPTS
 1. User Progression
 Each user starts at Level 1 with baseline XP. Users earn experience by:
+
 •	Completing daily challenges
 	•	Logging workouts
 	•	Logging meals
