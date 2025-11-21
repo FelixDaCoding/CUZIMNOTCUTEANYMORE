@@ -20,9 +20,13 @@ The system encourages users to complete daily tasks—such as completing workout
 Each user starts at Level 1 with baseline XP. Users earn experience by:
 
 •	Completing daily challenges
+
 •	Logging workouts
+
 •	Logging meals
+
 •	Completing quests
+
 •	Maintaining streaks
 
 As XP increases, the user levels up — unlocking new rewards, earning titles, and improving their account status.
