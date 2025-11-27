@@ -1,21 +1,33 @@
 public class Reward {
-    // Attributes
     private String rewardId;
     private String rewardName;
-    private String requirement; // e.g., "Level 5"
-    private String rewardType; // "Badge", "Title", "Item"
+    private int levelRequirement; // Changed string to int for easier logic
+    private String rewardType;
     private boolean isUnlocked;
 
-    // Methods from Diagram
+    public Reward(String name, int levelRequirement, String type) {
+        this.rewardName = name;
+        this.levelRequirement = levelRequirement;
+        this.rewardType = type;
+        this.isUnlocked = false;
+    }
+
     public void unlock(User user) {
-        // TODO: Set isUnlocked = true
+        if (user.getLevel() >= this.levelRequirement) {
+            this.isUnlocked = true;
+            System.out.println("Reward Unlocked: " + rewardName);
+        }
     }
 
     public void assignToUser(User user) {
-        // TODO: user.addReward(this)
+        if (isUnlocked) {
+            user.addReward(this);
+        }
     }
 
-    public void displayReward() {
-        // TODO: Show UI popup
+    public String displayReward() {
+        return isUnlocked ? rewardName + " (" + rewardType + ")" : "Locked Reward";
     }
+    
+    public String getRewardName() { return rewardName; }
 }
