@@ -91,8 +91,24 @@ public class User {
      */
     public int logWorkout(Workout workout) {
         workoutLog.add(workout);
-        // Placeholder: We will eventually calculate real XP here
-        return 0; 
+        
+        // Logic: Calculate XP based on workout details.
+        // For now, we use a flat rate since we don't have getters on the Workout class yet.
+        // TODO: Replace with 'workout.getDuration() * 5' or similar.
+        int gainedXP = 150; 
+        
+        // Apply Streak Multiplier
+        if (currentStreak != null) {
+            // Placeholder: Assume multiplier is accessed directly or calculated
+            // gainedXP = (int) (gainedXP * currentStreak.getMultiplier()); 
+        }
+
+        this.xp += gainedXP;
+        
+        // Check for level up immediately
+        levelUp();
+        
+        return gainedXP; 
     }
 
     /**
@@ -100,21 +116,39 @@ public class User {
      */
     public int logMeal(Meal meal) {
         mealLog.add(meal);
-        // Placeholder: We will eventually calculate real XP here
-        return 0;
+        
+        // Logic: Only award XP for healthy meals
+        // TODO: Replace with 'if (meal.isHealthy())' logic
+        int gainedXP = 50; 
+
+        this.xp += gainedXP;
+        levelUp();
+        
+        return gainedXP;
     }
 
     /**
      * Checks if the user has enough XP to level up.
+     * Threshold Formula: Level * 500 XP required.
      * @return true if the level actually increased.
      */
     public boolean levelUp() {
-        // Placeholder logic
+        int xpThreshold = this.level * 500;
+        
+        if (this.xp >= xpThreshold) {
+            this.level++;
+            // Optional: Deduct XP to "reset" the bar for the next level?
+            // For now, let's keep XP cumulative (like an RPG total).
+            return true;
+        }
         return false;
     }
 
     public void applyPenalty(Penalty penalty) {
         activePenalties.add(penalty);
+        this.penaltyPoints++;
+        // Logic: Maybe reduce XP?
+        // this.xp -= penalty.getMagnitude();
     }
 
     public void addReward(Reward reward) {
