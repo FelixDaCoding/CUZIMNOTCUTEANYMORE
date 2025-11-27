@@ -1,20 +1,28 @@
 public class Penalty {
-    // Attributes
     private String penaltyId;
-    private String penaltyType; // "XP_REDUCTION", "STREAK_FREEZE"
-    private int magnitude; // e.g., -50 XP
+    private String penaltyType;
+    private int magnitude; // XP amount to deduct
     private int durationHours;
 
-    // Methods from Diagram
+    public Penalty(String id, String type, int magnitude, int duration) {
+        this.penaltyId = id;
+        this.penaltyType = type;
+        this.magnitude = magnitude;
+        this.durationHours = duration;
+    }
+
     public void applyTo(User user) {
-        // TODO: Execute the penalty logic on user
+        System.out.println("Applying penalty: " + penaltyType + " (-" + magnitude + " XP)");
+        // In a full implementation: user.deductXP(magnitude);
     }
 
     public void revoke(User user) {
-        // TODO: Remove effect after duration expires
+        System.out.println("Penalty expired: " + penaltyType);
     }
 
     public String describe() {
-        return "Penalty: " + penaltyType + " for " + durationHours + " hours.";
+        return penaltyType + ": -" + magnitude + " XP for " + durationHours + " hours.";
     }
+    
+    public int getMagnitude() { return magnitude; }
 }
