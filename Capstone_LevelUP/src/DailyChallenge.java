@@ -19,11 +19,12 @@ public class DailyChallenge {
         this.completed = true;
     }
 
-    public void checkFailure(User user) {
+    public boolean checkFailure(User user) {
         // TODO: Run at midnight. If !completed -> applyDailyPenalty
     }
 
     public void applyDailyPenalty(User user) {
         // TODO: Trigger user.applyPenalty() and reset streak
     }
+
 }
