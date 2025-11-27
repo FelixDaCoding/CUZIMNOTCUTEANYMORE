@@ -22,7 +22,7 @@ public class User {
     private List<Reward> earnedRewards;
     private List<Penalty> activePenalties;
     private List<Quest> activeQuests;
-    
+
     // 1-to-1 Relationships
     private DailyChallenge currentDailyChallenge;
     private Streak currentStreak;
@@ -33,11 +33,11 @@ public class User {
         this.name = name;
         this.username = username;
         this.password = password;
-        
+
         this.xp = 0;
         this.level = 1;
         this.penaltyPoints = 0;
-        
+
         // Initialize lists
         this.workoutLog = new ArrayList<>();
         this.mealLog = new ArrayList<>();
@@ -50,7 +50,7 @@ public class User {
         systemAccounts.add(this);
     }
 
-    // --- Authentication ---
+    // --- Authentication & Registration ---
 
     public static boolean checkUser(String inputUsername) {
         for (User u : systemAccounts) {
@@ -69,46 +69,62 @@ public class User {
         for (User u : systemAccounts) {
             if (u.username.equalsIgnoreCase(inputUser)) {
                 if (u.checkPass(inputPass)) {
-                    return u; 
+                    return u;
                 } else {
-                    return null; 
+                    return null;
                 }
             }
         }
         return null;
     }
 
+    /**
+     * Registers a new user if the username doesn't exist.
+     * @return The new User object, or null if username is taken.
+     */
+    public static User register(String name, String username, String password) {
+        if (checkUser(username)) {
+            return null; // Username taken
+        }
+        // Generate a simple incremental ID
+        String newId = "U" + (systemAccounts.size() + 1);
+        return new User(newId, name, username, password);
+    }
+
     // --- Static Init ---
     static {
-        new User("U001", "Jin Woo", "player1", "password123");
+        new User("U001", "Jin Woo", "imHIM", "bruv");
         new User("U002", "Cha Hae", "hunter_cha", "hunter1");
     }
 
     // --- Core Logic Methods ---
 
     /**
-     * Logs a workout and returns the XP gained so the UI can display it.
+     * Logs a workout and returns the XP gained.
+     * Dynamic Formula: XP = Calories * 0.5 (Min threshold: 50 kcal)
      */
     public int logWorkout(Workout workout) {
         workoutLog.add(workout);
-        
-        // Logic: Calculate XP based on workout details.
-        // For now, we use a flat rate since we don't have getters on the Workout class yet.
-        // TODO: Replace with 'workout.getDuration() * 5' or similar.
-        int gainedXP = 150; 
-        
+
+        double calories = workout.getCaloriesBurned();
+        int gainedXP = 0;
+
+        // Minimum Effort Threshold (prevents 1 rep spamming)
+        if (calories >= 20) {
+            gainedXP = (int) (calories * 0.5); // 100 kcal = 50 XP
+        } else {
+            System.out.println(">> Effort too low for XP (Min 20 kcal burn required).");
+        }
+
         // Apply Streak Multiplier
-        if (currentStreak != null) {
-            // Placeholder: Assume multiplier is accessed directly or calculated
-            // gainedXP = (int) (gainedXP * currentStreak.getMultiplier()); 
+        if (currentStreak != null && currentStreak.getCurrentStreak() > 0) {
+            gainedXP = currentStreak.applyMultiplier(gainedXP);
         }
 
         this.xp += gainedXP;
-        
-        // Check for level up immediately
         levelUp();
-        
-        return gainedXP; 
+
+        return gainedXP;
     }
 
     /**
@@ -116,14 +132,15 @@ public class User {
      */
     public int logMeal(Meal meal) {
         mealLog.add(meal);
-        
-        // Logic: Only award XP for healthy meals
-        // TODO: Replace with 'if (meal.isHealthy())' logic
-        int gainedXP = 50; 
+
+        int gainedXP = 0;
+        if (meal.isHealthy()) {
+            gainedXP = 50;
+        }
 
         this.xp += gainedXP;
         levelUp();
-        
+
         return gainedXP;
     }
 
@@ -134,11 +151,10 @@ public class User {
      */
     public boolean levelUp() {
         int xpThreshold = this.level * 500;
-        
+
         if (this.xp >= xpThreshold) {
             this.level++;
-            // Optional: Deduct XP to "reset" the bar for the next level?
-            // For now, let's keep XP cumulative (like an RPG total).
+            System.out.println(">> *** LEVEL UP! You are now Level " + this.level + " ***");
             return true;
         }
         return false;
@@ -146,9 +162,6 @@ public class User {
 
     public void applyPenalty(Penalty penalty) {
         activePenalties.add(penalty);
-        this.penaltyPoints++;
-        // Logic: Maybe reduce XP?
-        // this.xp -= penalty.getMagnitude();
     }
 
     public void addReward(Reward reward) {
