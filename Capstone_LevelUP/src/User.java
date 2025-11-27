@@ -37,17 +37,17 @@ public class User {
     }
 
     // Methods from Diagram
-    public void logWorkout(Workout workout) {
+    public int logWorkout(Workout workout) {
         // TODO: Add to workoutLog and calculate XP
         workoutLog.add(workout);
     }
 
-    public void logMeal(Meal meal) {
+    public int logMeal(Meal meal) {
         // TODO: Add to mealLog and check health status
         mealLog.add(meal);
     }
 
-    public void levelUp() {
+    public boolean levelUp() {
         // TODO: Check XP threshold and increment level
     }
 
@@ -65,4 +65,5 @@ public class User {
     public Streak getStreak() { return currentStreak; }
     public DailyChallenge getDailyChallenge() { return currentDailyChallenge; }
     public void setDailyChallenge(DailyChallenge challenge) { this.currentDailyChallenge = challenge; }
+
 }
