@@ -28,6 +28,6 @@ public class Reward {
     public String displayReward() {
         return isUnlocked ? rewardName + " (" + rewardType + ")" : "Locked Reward";
     }
-    
+
     public String getRewardName() { return rewardName; }
 }

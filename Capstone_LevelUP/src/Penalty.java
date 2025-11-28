@@ -23,6 +23,6 @@ public class Penalty {
     public String describe() {
         return penaltyType + ": -" + magnitude + " XP for " + durationHours + " hours.";
     }
-    
+
     public int getMagnitude() { return magnitude; }
 }

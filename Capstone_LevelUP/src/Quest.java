@@ -22,7 +22,7 @@ public class Quest {
         if (isClaimed) return true;
 
         boolean conditionMet = false;
-        
+
         switch (questType) {
             case "LevelUp":
                 conditionMet = user.getLevel() >= targetAmount;
@@ -30,9 +30,9 @@ public class Quest {
             case "Streak":
                 conditionMet = user.getStreak().getCurrentStreak() >= targetAmount;
                 break;
-             // Add more cases as needed
+            // Add more cases as needed
         }
-        
+
         return conditionMet;
     }
 
@@ -48,7 +48,7 @@ public class Quest {
     public void resetQuest() {
         this.isClaimed = false;
     }
-    
+
     public String getQuestName() { return questName; }
     public int getRewardXP() { return rewardXP; }
 }
