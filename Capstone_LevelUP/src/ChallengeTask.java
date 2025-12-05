@@ -1,4 +1,8 @@
-public class ChallengeTask {
+import java.io.Serializable;
+
+public class ChallengeTask implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String taskName; // e.g. "Push Ups"
     private int target;      // e.g. 15
     private int current;     // e.g. 0
@@ -22,7 +26,8 @@ public class ChallengeTask {
         return current >= target;
     }
 
-    public String getStatus() {
+    // This method was missing!
+    public String getProgressDisplay() {
         return current + "/" + target + " " + unit;
     }
 

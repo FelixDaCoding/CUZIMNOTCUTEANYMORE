@@ -1,4 +1,10 @@
-public class Penalty {
+import java.io.Serializable;
+
+
+public class Penalty implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private String penaltyId;
     private String penaltyType;
     private int magnitude; // XP amount to deduct
@@ -23,6 +29,6 @@ public class Penalty {
     public String describe() {
         return penaltyType + ": -" + magnitude + " XP for " + durationHours + " hours.";
     }
-
+    
     public int getMagnitude() { return magnitude; }
 }

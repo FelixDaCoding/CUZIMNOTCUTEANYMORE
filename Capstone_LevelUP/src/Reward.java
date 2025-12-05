@@ -1,4 +1,9 @@
-public class Reward {
+import java.io.Serializable;
+
+public class Reward implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private String rewardId;
     private String rewardName;
     private int levelRequirement; // Changed string to int for easier logic
@@ -28,6 +33,6 @@ public class Reward {
     public String displayReward() {
         return isUnlocked ? rewardName + " (" + rewardType + ")" : "Locked Reward";
     }
-
+    
     public String getRewardName() { return rewardName; }
 }
