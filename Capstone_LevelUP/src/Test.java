@@ -11,15 +11,15 @@ public class Test extends JFrame {
     // === UI COMPONENTS ===
     private JPanel LevelUP, Start, CreateAcc, SignIn, ForgotPass;
     private JPanel HomePage, StreakPage, ChallPage, LogPage, AccPage;
-    private JPanel TimerJPanel; // Added back
-    private JLabel AppFBAccPage, CheckLogAccPage; // Added back
+    private JPanel TimerJPanel;
+    private JLabel AppFBAccPage, CheckLogAccPage;
     private JLabel ChallengeTitle;
 
     // Auth & Inputs
     private JButton SignInPageBT, CreateAccPageBT, CreateAccountBT, SignInBT, ChangePasswordButton, SignOutButton;
     private JTextField CreateUserTextField, CheckUsernameField, EnterUsernameTextField;
-    private JTextField CreatePassTextField, CheckPassField; // Keep as JTextField for GUI Designer
-    private JTextField EnterNewPasswordTextField; // Keep as JTextField
+    private JTextField CreatePassTextField, CheckPassField;
+    private JTextField EnterNewPasswordTextField;
     private JLabel SignInForgotPassword, CPassAccPage;
 
     // Navigation Labels
@@ -37,11 +37,11 @@ public class Test extends JFrame {
     private JLabel HMPageStreakCount, HMPageEXPCount, StreakCount;
 
     // Calendar Day Labels
-    private JPanel Days; // ADDED BACK - This was missing!
+    private JPanel Days;
     private JLabel SDay, MDay, TDay, WDay, ThDay, FDay, StDay;
 
     // Challenge Page
-    private JPanel Challenge; // ADDED BACK
+    private JPanel Challenge;
     private JProgressBar ChallPageProgressBar;
     private JButton CompleteChallengeButton;
     private JLabel RewardLabel, RewardCount;
@@ -58,6 +58,8 @@ public class Test extends JFrame {
     private JLabel GoBackCAcc;
     private JLabel GoBackSignIn;
     private JLabel GoBackForgPass;
+    private JLabel ProgressTab;
+    private JLabel Levi;
 
     // === BACKEND DATA ===
     private static User currentUser = null;
@@ -66,6 +68,38 @@ public class Test extends JFrame {
     private java.util.List<JCheckBox> challengeCheckBoxes;
     private final Map<String, Integer> calorieMap = new HashMap<>();
 
+    // Placeholder tracking
+    private final Map<JTextField, String> placeholderMap = new HashMap<>();
+
+    // XP thresholds for level progression
+    private static final int[] XP_THRESHOLDS = {
+            0,      // Level 1: 0 XP required
+            60,     // Level 2: 60 XP required
+            120,    // Level 3: 120 XP required
+            200,    // Level 4: 200 XP required
+            300,    // Level 5: 300 XP required
+            450,    // Level 6: 450 XP required
+            750,    // Level 7: 750 XP required
+            1125,   // Level 8: 1125 XP required
+            1650,   // Level 9: 1650 XP required
+            2250,   // Level 10: 2250 XP required
+            3000,   // Level 11: 3000 XP required
+            3900,   // Level 12: 3900 XP required
+            4900,   // Level 13: 4900 XP required
+            6000,   // Level 14: 6000 XP required
+            7500,   // Level 15: 7500 XP required
+            9000,   // Level 16: 9000 XP required
+            10500,  // Level 17: 10500 XP required
+            12000,  // Level 18: 12000 XP required
+            13500,  // Level 19: 13500 XP required
+            15000,  // Level 20: 15000 XP required
+            17000,  // Level 21: 17000 XP required
+            19000,  // Level 22: 19000 XP required
+            22500,  // Level 23: 22500 XP required
+            26000,  // Level 24: 26000 XP required
+            30000   // Level 25: 30000 XP required
+    };
+
     Test() {
         // --- SETUP ---
         setContentPane(LevelUP);
@@ -73,7 +107,7 @@ public class Test extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
         setLocationRelativeTo(null);
-        setTitle("LevelUP");
+        setTitle("LevelUP Fitness");
 
         // --- INITIALIZATION ---
         loadCredentials();
@@ -87,6 +121,11 @@ public class Test extends JFrame {
         // Start at Start Page
         switchCard("Start");
 
+        // Initialize ProgressTab
+
+        Levi.setText("Level 1");
+        ProgressTab.setText("0/60 XP");
+
         // --- BUTTON ACTIONS ---
         SignInPageBT.addActionListener(e -> switchCard("SignIn"));
         CreateAccPageBT.addActionListener(e -> switchCard("CreateAcc"));
@@ -96,8 +135,8 @@ public class Test extends JFrame {
 
         // --- CHANGE PASSWORD LOGIC ---
         ChangePasswordButton.addActionListener(e -> {
-            String username = EnterUsernameTextField.getText();
-            String newPass = EnterNewPasswordTextField.getText();
+            String username = getFieldText(EnterUsernameTextField);
+            String newPass = getFieldText(EnterNewPasswordTextField);
 
             if (username.isEmpty() || newPass.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Please enter username and new password.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -115,14 +154,15 @@ public class Test extends JFrame {
             saveCredentials();
 
             JOptionPane.showMessageDialog(this, "Password Changed Successfully!");
-            EnterUsernameTextField.setText("");
-            EnterNewPasswordTextField.setText("");
+            resetField(EnterUsernameTextField);
+            resetField(EnterNewPasswordTextField);
             switchCard("SignIn");
         });
 
         // Forgot Password Links
         MouseAdapter forgotPassAdapter = new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override
+            public void mouseClicked(MouseEvent e) {
                 switchCard("ForgotPass");
             }
         };
@@ -142,10 +182,19 @@ public class Test extends JFrame {
             if (currentUser == null) return;
             if (ChallPageProgressBar.getValue() == 100) {
                 Workout challengeWorkout = new Workout("Daily Challenge", 0, "Low");
-                currentUser.logWorkout(challengeWorkout);
 
+                // Get current XP before adding new XP
+                int oldXP = currentUser.getXp();
+
+                currentUser.logWorkout(challengeWorkout);
                 forceStreakUpdate();
                 currentUser.gainXP(500);
+
+                // Get new XP
+                int newXP = currentUser.getXp();
+
+                // Check for level up
+                boolean leveledUp = checkLevelUp(oldXP, newXP);
 
                 saveStreakHistoryDate(LocalDate.now());
                 saveUserStreakData();
@@ -153,45 +202,205 @@ public class Test extends JFrame {
 
                 lockChallengeUI(true);
 
-                JOptionPane.showMessageDialog(this, "Challenge Completed!\nXP Gained: 500\nStreak Updated!");
+                // Create success message
+                String message = "Challenge Completed!\n" +
+                        "XP Gained: 500\n" +
+                        "Total XP: " + newXP + "\n" +
+                        "Streak Updated!";
+
+                if (leveledUp) {
+                    int newLevel = calculateLevelFromXP(newXP);
+                    message += "\n\n🎉 LEVEL UP! You reached Level " + newLevel + "!";
+                }
+
+                JOptionPane.showMessageDialog(this, message);
                 refreshUI();
             } else {
                 JOptionPane.showMessageDialog(this, "Complete all tasks first!", "Incomplete", JOptionPane.WARNING_MESSAGE);
             }
         });
 
-        // 2. LOG WORKOUT
+        // LOG WORKOUT
         LogWorkoutButton.addActionListener(e -> handleLogWorkout());
 
-        // 3. LOG MEAL
+        // LOG MEAL
         LogMealButton.addActionListener(e -> handleLogMeal());
 
-        GoBackCAcc.addMouseListener(new MouseAdapter() {
+        // Go Back Buttons
+        if (GoBackCAcc != null) {
+            GoBackCAcc.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    CardLayout cl = (CardLayout) LevelUP.getLayout();
+                    cl.show(LevelUP, "Start");
+                    GoBackCAcc.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                }
+            });
+        }
+
+        if (GoBackSignIn != null) {
+            GoBackSignIn.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    CardLayout cl = (CardLayout) LevelUP.getLayout();
+                    cl.show(LevelUP, "CreateAcc");
+                    GoBackSignIn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                }
+            });
+        }
+
+        if (GoBackForgPass != null) {
+            GoBackForgPass.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    CardLayout cl = (CardLayout) LevelUP.getLayout();
+                    cl.show(LevelUP, "SignIn");
+                    GoBackForgPass.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                }
+            });
+        }
+        Levi.addFocusListener(new FocusAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                CardLayout cl = (CardLayout) LevelUP.getLayout();
-                cl.show(LevelUP, "Start");
-                GoBackCAcc.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            public void focusGained(FocusEvent e) {
+                super.focusGained(e);
+            }
+        });
+    }
+
+    // =========================================================
+    // === LEVEL CALCULATION METHODS ===
+    // =========================================================
+
+    private int calculateLevelFromXP(int xp) {
+        // Find the current level based on XP
+        for (int level = 1; level <= XP_THRESHOLDS.length; level++) {
+            if (xp < XP_THRESHOLDS[level]) {
+                return level;
+            }
+        }
+        return 25; // Max level
+    }
+
+    private int getXPForNextLevel(int xp) {
+        int currentLevel = calculateLevelFromXP(xp);
+        if (currentLevel >= 25) {
+            return XP_THRESHOLDS[24]; // Max level reached
+        }
+        return XP_THRESHOLDS[currentLevel];
+    }
+
+    private int getXPForCurrentLevel(int xp) {
+        int currentLevel = calculateLevelFromXP(xp);
+        if (currentLevel <= 1) {
+            return 0;
+        }
+        return XP_THRESHOLDS[currentLevel - 1];
+    }
+
+    private int calculateProgressPercentage(int xp) {
+        int currentLevel = calculateLevelFromXP(xp);
+
+        if (currentLevel >= 25) {
+            return 100; // Max level
+        }
+
+        int currentLevelXP = getXPForCurrentLevel(xp);
+        int nextLevelXP = getXPForNextLevel(xp);
+        int xpForNextLevel = nextLevelXP - currentLevelXP;
+        int xpInCurrentLevel = xp - currentLevelXP;
+
+        if (xpForNextLevel <= 0) return 100;
+
+        return (int) ((double) xpInCurrentLevel / xpForNextLevel * 100);
+    }
+
+    private String getFormattedLevelString(int xp) {
+        int level = calculateLevelFromXP(xp);
+        int xpInLevel = xp - getXPForCurrentLevel(xp);
+        int xpNeeded = getXPForNextLevel(xp) - getXPForCurrentLevel(xp);
+
+        if (level >= 25) {
+            return String.format("Level %d: MAX LEVEL", level);
+        }
+
+        return String.format("Level %d: %d/%d XP", level, xpInLevel, xpNeeded);
+    }
+
+    private boolean checkLevelUp(int oldXP, int newXP) {
+        int oldLevel = calculateLevelFromXP(oldXP);
+        int newLevel = calculateLevelFromXP(newXP);
+        return newLevel > oldLevel;
+    }
+
+    // =========================================================
+    // === PLACEHOLDER FUNCTIONALITY ===
+    // =========================================================
+
+    private void setupPlaceholder(JTextField textField, String placeholder) {
+        if (textField == null) return;
+
+        placeholderMap.put(textField, placeholder);
+        textField.setText(placeholder);
+        textField.setForeground(Color.GRAY);
+
+        textField.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textField.getText().equals(placeholder)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textField.getText().isEmpty()) {
+                    textField.setText(placeholder);
+                    textField.setForeground(Color.GRAY);
+                }
             }
         });
 
-        GoBackSignIn.addMouseListener(new MouseAdapter() {
+        textField.addKeyListener(new KeyAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                CardLayout cl = (CardLayout) LevelUP.getLayout();
-                cl.show(LevelUP, "CreateAcc");
-                GoBackSignIn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            public void keyReleased(KeyEvent e) {
+                String text = textField.getText();
+                if (textField.getForeground() == Color.GRAY && !text.isEmpty() && !text.equals(placeholder)) {
+                    textField.setForeground(Color.BLACK);
+                }
             }
         });
+    }
 
-        GoBackForgPass.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                CardLayout cl = (CardLayout) LevelUP.getLayout();
-                cl.show(LevelUP, "SignIn");
-                GoBackForgPass.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    private void setupPlaceholders() {
+        if (CheckUsernameField != null) setupPlaceholder(CheckUsernameField, "Username");
+        if (CheckPassField != null) setupPlaceholder(CheckPassField, "Password");
+        if (CreateUserTextField != null) setupPlaceholder(CreateUserTextField, "Create Username");
+        if (CreatePassTextField != null) setupPlaceholder(CreatePassTextField, "Create Password");
+        if (EnterUsernameTextField != null) setupPlaceholder(EnterUsernameTextField, "Enter Username");
+        if (EnterNewPasswordTextField != null) setupPlaceholder(EnterNewPasswordTextField, "Enter New Password");
+    }
+
+    private String getFieldText(JTextField field) {
+        if (field == null) return "";
+        String text = field.getText().trim();
+        String placeholder = placeholderMap.get(field);
+        if (placeholder != null && text.equals(placeholder)) {
+            return "";
+        }
+        return text;
+    }
+
+    private void resetField(JTextField field) {
+        if (field != null) {
+            String placeholder = placeholderMap.get(field);
+            if (placeholder != null) {
+                field.setText(placeholder);
+                field.setForeground(Color.GRAY);
+            } else {
+                field.setText("");
             }
-        });
+        }
     }
 
     // =========================================================
@@ -205,7 +414,6 @@ public class Test extends JFrame {
     private boolean verifyPassword(String username, String inputPassword) {
         String storedHash = userCredentials.get(username);
         if (storedHash == null) return false;
-
         String inputHash = hashPassword(inputPassword);
         return storedHash.equals(inputHash);
     }
@@ -215,8 +423,8 @@ public class Test extends JFrame {
     // =========================================================
 
     private void handleLogin() {
-        String username = CheckUsernameField.getText();
-        String password = CheckPassField.getText();
+        String username = getFieldText(CheckUsernameField);
+        String password = getFieldText(CheckPassField);
 
         if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter both username and password.",
@@ -227,8 +435,8 @@ public class Test extends JFrame {
         if (!userCredentials.containsKey(username)) {
             JOptionPane.showMessageDialog(this, "User not found. Please check your username or create an account.",
                     "Error", JOptionPane.ERROR_MESSAGE);
-            CheckUsernameField.setText("");
-            CheckPassField.setText("");
+            resetField(CheckUsernameField);
+            resetField(CheckPassField);
             CheckUsernameField.requestFocus();
             return;
         }
@@ -236,7 +444,7 @@ public class Test extends JFrame {
         if (!verifyPassword(username, password)) {
             JOptionPane.showMessageDialog(this, "Incorrect password. Please try again.",
                     "Error", JOptionPane.ERROR_MESSAGE);
-            CheckPassField.setText("");
+            resetField(CheckPassField);
             CheckPassField.requestFocus();
             return;
         }
@@ -246,16 +454,13 @@ public class Test extends JFrame {
 
         JOptionPane.showMessageDialog(this, "Welcome, " + username + "!");
 
-        CheckPassField.setText("");
-        CheckUsernameField.setText("");
-
         refreshUI();
         switchCard("HomePage");
     }
 
     private void handleRegistration() {
-        String username = CreateUserTextField.getText();
-        String password = CreatePassTextField.getText();
+        String username = getFieldText(CreateUserTextField);
+        String password = getFieldText(CreatePassTextField);
 
         if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter both username and password.",
@@ -276,8 +481,8 @@ public class Test extends JFrame {
         User newUser = User.register(username, username, password);
         if (newUser != null) {
             JOptionPane.showMessageDialog(this, "Account Created Successfully!");
-            CreateUserTextField.setText("");
-            CreatePassTextField.setText("");
+            resetField(CreateUserTextField);
+            resetField(CreatePassTextField);
             switchCard("SignIn");
         }
     }
@@ -288,12 +493,20 @@ public class Test extends JFrame {
         }
         currentUser = null;
 
-        CheckUsernameField.setText("");
-        CheckPassField.setText("");
-        CreateUserTextField.setText("");
-        CreatePassTextField.setText("");
-        EnterUsernameTextField.setText("");
-        EnterNewPasswordTextField.setText("");
+        // Reset all fields with placeholders
+        resetField(CheckUsernameField);
+        resetField(CheckPassField);
+        resetField(CreateUserTextField);
+        resetField(CreatePassTextField);
+        resetField(EnterUsernameTextField);
+        resetField(EnterNewPasswordTextField);
+
+        // Clear checkboxes on logout page
+        if (workoutCheckBoxes != null) {
+            for (JCheckBox cb : workoutCheckBoxes) {
+                if (cb != null) cb.setSelected(false);
+            }
+        }
 
         switchCard("Start");
     }
@@ -329,13 +542,32 @@ public class Test extends JFrame {
         String logText = "Workouts: " + activityName.toString();
         writeToLogFile(logText);
 
+        // Get current XP before adding new XP
+        int oldXP = currentUser.getXp();
+
         Workout w = new Workout("Session: " + exerciseCount + " Exercises", 0, "Low");
         currentUser.logWorkout(w);
         currentUser.gainXP(xpToAward);
 
+        // Get new XP
+        int newXP = currentUser.getXp();
+
+        // Check for level up
+        boolean leveledUp = checkLevelUp(oldXP, newXP);
+
         saveStreakHistoryDate(LocalDate.now());
 
-        JOptionPane.showMessageDialog(this, "Logged: " + exerciseCount + " Exercises\nGained " + xpToAward + " XP.");
+        // Create success message
+        String message = "Logged: " + exerciseCount + " Exercises\n" +
+                "Gained " + xpToAward + " XP.\n" +
+                "Total XP: " + newXP + "\n";
+
+        if (leveledUp) {
+            int newLevel = calculateLevelFromXP(newXP);
+            message += "\n🎉 LEVEL UP! You reached Level " + newLevel + "!";
+        }
+
+        JOptionPane.showMessageDialog(this, message);
         updateChallengeStateFromLogs();
         refreshUI();
     }
@@ -367,13 +599,29 @@ public class Test extends JFrame {
         String mealName = "Combo: " + protein + " + " + carb;
         Meal m = new Meal(mealName, totalCals, "Lunch");
 
+        // Get current XP before adding new XP
+        int oldXP = currentUser.getXp();
+
         int xp = currentUser.logMeal(m);
 
+        // Get new XP
+        int newXP = currentUser.getXp();
+
+        // Check for level up
+        boolean leveledUp = checkLevelUp(oldXP, newXP);
+
         String status = m.isHealthy() ? "Healthy Choice! (+50 XP)" : "High Calorie Meal (No XP)";
-        JOptionPane.showMessageDialog(this,
-                "Meal Logged!\n" +
-                        "Total Calories: " + totalCals + "\n" +
-                        "Verdict: " + status);
+
+        String message = "Meal Logged!\n" +
+                "Total Calories: " + totalCals + "\n" +
+                "Verdict: " + status;
+
+        if (leveledUp) {
+            int newLevel = calculateLevelFromXP(newXP);
+            message += "\n\n🎉 LEVEL UP! You reached Level " + newLevel + "!";
+        }
+
+        JOptionPane.showMessageDialog(this, message);
 
         ProteinComboBox.setSelectedIndex(0);
         CarbohydratesComboBox.setSelectedIndex(0);
@@ -401,16 +649,41 @@ public class Test extends JFrame {
             HomePageDisplayDate.setText(LocalDate.now().toString());
         }
 
+
+
         if (currentUser.getCurrentStreak() != null) {
             HMPageStreakCount.setText(String.valueOf(currentUser.getCurrentStreak().getCurrentStreak()));
         }
-        HMPageEXPCount.setText(currentUser.getXp() + " XP");
 
-        int level = currentUser.getLevel();
-        int xp = currentUser.getXp();
-        int startXP = (level - 1) * 500;
-        int progress = (int) (((double)(xp - startXP) / 500) * 100);
-        HMPageProgressBar.setValue(Math.max(0, Math.min(100, progress)));
+
+
+        // Update XP count display
+        int currentXP = currentUser.getXp();
+        HMPageEXPCount.setText(currentXP + " XP");
+
+        // Calculate level
+        int level = calculateLevelFromXP(currentXP);
+
+        // Update Levi with just the level number
+        Levi.setText("Level " + level);
+
+        // Calculate XP needed for next level
+        int nextLevelXP = getXPForNextLevel(currentXP);
+        int currentLevelXP = getXPForCurrentLevel(currentXP);
+        int xpInCurrentLevel = currentXP - currentLevelXP;
+        int xpNeededForNextLevel = nextLevelXP - currentLevelXP;
+
+        // Update ProgressTab with XP progress (e.g., "0/60", "30/60")
+        ProgressTab.setText(xpInCurrentLevel + "/" + xpNeededForNextLevel);
+
+        // Calculate and update progress bar
+        int progress = 0;
+        if (xpNeededForNextLevel > 0) {
+            progress = (xpInCurrentLevel * 100) / xpNeededForNextLevel;
+        }
+
+        HMPageProgressBar.setValue(progress);
+        HMPageProgressBar.setString(progress + "%");
     }
 
     private void refreshStreakPage() {
@@ -829,31 +1102,37 @@ public class Test extends JFrame {
     }
 
     // Helper dummies for array lists
-    private JLabel HMBTNs() { return null; }
-    private JLabel STKBTNs() { return null; }
-    private JLabel CHALBTNs() { return null; }
-    private JLabel LOGBTNs() { return null; }
-    private JLabel ACCBTNs() { return null; }
+    private JLabel HMBTNs() {
+        return null;
+    }
+
+    private JLabel STKBTNs() {
+        return null;
+    }
+
+    private JLabel CHALBTNs() {
+        return null;
+    }
+
+    private JLabel LOGBTNs() {
+        return null;
+    }
+
+    private JLabel ACCBTNs() {
+        return null;
+    }
 
     private void initializeLists() {
         workoutCheckBoxes = Arrays.asList(checkBox1, checkBox2, checkBox3, checkBox4, checkBox5, checkBox6, checkBox7, checkBox8, checkBox9, checkBox10, checkBox11, checkBox12, checkBox13, checkBox14, checkBox15, checkBox16);
         challengeCheckBoxes = Arrays.asList(Chall1, Chall2, Chall3, Chall4);
     }
 
-    private void setupPlaceholders() {
-        if (CheckUsernameField != null)
-            CheckUsernameField.setText("Username");
-        if (CheckPassField != null)
-            CheckPassField.setText("Password");
-        if (CreatePassTextField != null)
-            CreatePassTextField.setText("Password");
-    }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
                 UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
             new Test();
         });
     }
