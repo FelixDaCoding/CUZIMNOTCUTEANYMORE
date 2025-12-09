@@ -1,10 +1,4 @@
-import java.io.Serializable;
-
-
-public class Penalty implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
+public class Penalty {
     private String penaltyId;
     private String penaltyType;
     private int magnitude; // XP amount to deduct

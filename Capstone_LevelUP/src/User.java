@@ -1,13 +1,7 @@
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDate;
-import java.time.DayOfWeek;
 
-public class User implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
+public class User {
     private final String userId;
     private String name;
     private String username;
@@ -44,29 +38,9 @@ public class User implements Serializable {
         this.activePenalties = new ArrayList<>();
         this.activeQuests = new ArrayList<>();
         this.currentStreak = new Streak();
-
-        // Auto-assign challenge on creation
-        generateDailyChallenge();
+        this.currentDailyChallenge = null;
 
         systemAccounts.add(this);
-    }
-
-    // --- Data Aggregation for UI ---
-
-    /**
-     * Returns the total minutes of workouts done in the last 7 days.
-     * Used for the big "180 Workout Minutes" number on the Home Page.
-     */
-    public int getTotalWeeklyMinutes() {
-        int total = 0;
-        LocalDate today = LocalDate.now();
-        for (Workout w : workoutLog) {
-            LocalDate wDate = w.getDate();
-            if (!wDate.isBefore(today.minusDays(6)) && !wDate.isAfter(today)) {
-                total += w.getDurationMins();
-            }
-        }
-        return total;
     }
 
     // Basic getters and setters
@@ -84,153 +58,62 @@ public class User implements Serializable {
     public void setPenaltyPoints(int penaltyPoints) { this.penaltyPoints = penaltyPoints; }
 
     public DailyChallenge getDailyChallenge() { return currentDailyChallenge; }
-
-    // Manual setter if needed, but logic now prefers generation
     public void setDailyChallenge(DailyChallenge challenge) {
         this.currentDailyChallenge = challenge;
         System.out.println(">> New Daily Challenge: " + challenge.getChallengeName());
     }
 
-    // --- Daily Challenge Logic ---
-
-    /**
-     * Checks if the challenge is outdated OR if the difficulty doesn't match the user's level.
-     */
-    /**
-     * Checks if a new challenge is needed.
-     * FIX: Ensures we do NOT overwrite an existing challenge for the current day.
-     */
+    // Method to check and update daily challenge
     public void updateDailyChallenge() {
-        LocalDate today = LocalDate.now();
+        if (currentDailyChallenge != null && !currentDailyChallenge.isCompleted()) {
+            // Check if challenge is from today
+            if (!currentDailyChallenge.getAssignedDate().equals(java.time.LocalDate.now())) {
+                System.out.println(">> Daily challenge expired, resetting...");
+                currentDailyChallenge.resetProgress();
+            }
+        }
+    }
 
-        // 1. SAFETY CHECK:
-        // If we already have a challenge AND it is assigned for today...
-        if (this.currentDailyChallenge != null &&
-                this.currentDailyChallenge.getAssignedDate().equals(today)) {
-            // ...STOP! Do not touch it. Keep the progress.
+    // Method to automatically progress daily challenge based on workout
+    public void progressDailyChallengeWithWorkout(Workout workout) {
+        if (currentDailyChallenge == null || currentDailyChallenge.isCompleted()) {
             return;
         }
 
-        // 2. Only generate if it's null or from a previous date
-        System.out.println(">> Generating new Daily Challenge for " + today.getDayOfWeek());
-        generateDailyChallenge();
-    }
+        DailyChallenge.TargetType targetType = currentDailyChallenge.getTargetType();
+        double progressAmount = 0;
 
-
-    /**
-     * Generates a specific challenge based on Day of Week + User Level.
-     * Calculates specific Sets and Reps instructions.
-     */
-    private void generateDailyChallenge() {
-        DayOfWeek today = LocalDate.now().getDayOfWeek();
-        int scale = Math.max(1, this.level); // Difficulty scaler
-
-        // --- CALCULATION LOGIC ---
-        // We define the totals, then break them down into Sets x Reps for the description
-
-        int pushupsTotal = 10 * scale;
-        int situpsTotal = 20 * scale;
-        int squatsTotal = 15 * scale;
-        int stepsTotal = 10000 + (500 * (scale - 1));
-
-        // Helper formatting for "3 Sets of X"
-        String pushupInst = formatSetsReps(pushupsTotal, "Push-Ups");
-        String situpInst = formatSetsReps(situpsTotal, "Sit-Ups");
-        String squatInst = formatSetsReps(squatsTotal, "Squats");
-
-        // Build the text description
-        String routineDesc = String.format(
-                "\n[MAIN ROUTINE]\n- %s\n- %s\n- %s\n- %d Steps (Total)",
-                pushupInst, situpInst, squatInst, stepsTotal
-        );
-
-        // 1. Create Challenge Object
-        DailyChallenge challenge = new DailyChallenge(
-                "Daily Grind",
-                "Follow the Sets/Reps instructions below.",
-                100,
-                DailyChallenge.TargetType.COMPOSITE,
-                scale,
-                100 + (scale * 20),
-                10
-        );
-
-        // 2. Add Tasks (Tracking Total Numbers)
-        challenge.addTask("Push-Ups", pushupsTotal, "Reps");
-        challenge.addTask("Sit-Ups", situpsTotal, "Reps");
-        challenge.addTask("Squats", squatsTotal, "Reps");
-        challenge.addTask("Steps", stepsTotal, "Steps");
-
-        // 3. Add Specific Daily Focus & Update Description
-        String dailyFocus = "";
-
-        switch (today) {
-            case MONDAY: // Cardio
-                dailyFocus = "Monday Cardio: 1 Run (Continuous)";
-                challenge.addTask("Running", 15 + (5 * scale), "Mins");
+        switch (targetType) {
+            case CALORIES:
+                progressAmount = workout.getCaloriesBurned();
                 break;
-            case TUESDAY: // Lower Body
-                int lungeTotal = 20 * scale;
-                int calfTotal = 25 * scale;
-                dailyFocus = "Tuesday Legs:\n- " + formatSetsReps(lungeTotal, "Lunges") +
-                        "\n- " + formatSetsReps(calfTotal, "Calf Raises");
-                challenge.addTask("Lunges", lungeTotal, "Reps");
-                challenge.addTask("Calf Raises", calfTotal, "Reps");
+            case RUN_DURATION:
+            case JOG_MINS:
+                if (workout.getWorkoutName().toLowerCase().contains("run") ||
+                        workout.getWorkoutName().toLowerCase().contains("jog")) {
+                    progressAmount = workout.getDurationMins();
+                }
                 break;
-            case WEDNESDAY: // Upper Body
-                int dipTotal = 10 * scale;
-                dailyFocus = "Wednesday Upper:\n- " + formatSetsReps(dipTotal, "Tricep Dips") +
-                        "\n- Plank: " + (1 + (scale/3)) + " Sets of 60s";
-                challenge.addTask("Tricep Dips", dipTotal, "Reps");
-                challenge.addTask("Plank", 1 + (scale / 2), "Mins");
+            case PUSHUPS_REPS:
+                if (workout.getWorkoutName().toLowerCase().contains("pushup")) {
+                    progressAmount = workout.getReps() * workout.getSets();
+                }
                 break;
-            case THURSDAY: // Active Rest
-                dailyFocus = "Thursday Recovery: 1 Session of Yoga";
-                challenge.addTask("Yoga", 15, "Mins");
+            case CRUNCHES_REPS:
+                if (workout.getWorkoutName().toLowerCase().contains("crunch")) {
+                    progressAmount = workout.getReps() * workout.getSets();
+                }
                 break;
-            case FRIDAY: // Glutes
-                int gluteTotal = 20 * scale;
-                int legRaiseTotal = 15 * scale;
-                dailyFocus = "Friday Glutes:\n- " + formatSetsReps(gluteTotal, "Glute Bridges") +
-                        "\n- " + formatSetsReps(legRaiseTotal, "Side Leg Raises");
-                challenge.addTask("Glute Bridges", gluteTotal, "Reps");
-                challenge.addTask("Side Leg Raises", legRaiseTotal, "Reps");
-                break;
-            case SATURDAY: // Strength
-                int burpeeTotal = 5 * scale;
-                int pullTotal = Math.max(1, 2 * scale);
-                dailyFocus = "Saturday Strength:\n- " + formatSetsReps(burpeeTotal, "Burpees") +
-                        "\n- " + formatSetsReps(pullTotal, "Pull-Ups");
-                challenge.addTask("Burpees", burpeeTotal, "Reps");
-                challenge.addTask("Pull-Ups", pullTotal, "Reps");
-                break;
-            case SUNDAY: // Rest
-                dailyFocus = "Sunday Rest: Light Walking";
-                challenge.addTask("Walking", 20, "Mins");
+            case SQUATS_REPS:
+                if (workout.getWorkoutName().toLowerCase().contains("squat")) {
+                    progressAmount = workout.getReps() * workout.getSets();
+                }
                 break;
         }
 
-        // Combine everything into the description
-        challenge.updateDescription(dailyFocus + "\n" + routineDesc);
-        this.currentDailyChallenge = challenge;
-    }
-
-    // Helper to calculate sets (aiming for 10-20 reps per set)
-    private String formatSetsReps(int total, String name) {
-        int sets = 3; // Default to 3 sets
-
-        // Adjust sets for high volume
-        if (total > 60) sets = 4;
-        if (total > 100) sets = 5;
-
-        // Adjust for low volume
-        if (total < 10) sets = 1;
-
-        int reps = total / sets;
-        int remainder = total % sets; // Distribute remainder if needed (simplified here)
-
-        if (sets == 1) return total + " " + name;
-        return sets + " Sets of " + reps + " " + name;
+        if (progressAmount > 0) {
+            currentDailyChallenge.addToProgress(progressAmount, this);
+        }
     }
 
     public Streak getCurrentStreak() { return currentStreak; }
@@ -270,8 +153,6 @@ public class User implements Serializable {
         }
 
         // Update daily challenge
-        // Ensure we have the correct challenge for the day before processing
-        updateDailyChallenge();
         progressDailyChallengeWithWorkout(workout);
 
         double calories = workout.getCaloriesBurned();
@@ -292,20 +173,16 @@ public class User implements Serializable {
         return gainedXP;
     }
 
-    // In your User class, update the logMeal method:
     public int logMeal(Meal meal) {
         mealLog.add(meal);
         int gainedXP = 0;
         if (meal.isHealthy()) {
-            // Base XP for healthy meal + bonus for good nutrition
-            gainedXP = 50 + (meal.getTotalCalories() / 100); // +1 XP per 100 calories
+            gainedXP = 50;
             this.xp += gainedXP;
             levelUp();
 
-            // Check quests
+            // Check quests after meal
             checkAndClaimQuests();
-        } else {
-            System.out.println(">> Unhealthy meal logged - no XP gained. Try for healthier options next time!");
         }
         return gainedXP;
     }
@@ -316,23 +193,11 @@ public class User implements Serializable {
             this.level++;
             System.out.println(">> *** LEVEL UP! You are now Level " + this.level + " ***");
 
-            // Regenerate challenge if level up changes difficulty mid-day?
-            // Better to keep current one until next day to avoid confusion.
-
             // Check quests after level up
             checkAndClaimQuests();
             return true;
         }
         return false;
-    }
-
-    // Method to automatically progress daily challenge based on workout
-    public void progressDailyChallengeWithWorkout(Workout workout) {
-        if (currentDailyChallenge == null || currentDailyChallenge.isCompleted()) {
-            return;
-        }
-        // Delegate completely to the Challenge's internal logic
-        currentDailyChallenge.processWorkout(workout, this);
     }
 
     public void applyPenalty(Penalty penalty) {

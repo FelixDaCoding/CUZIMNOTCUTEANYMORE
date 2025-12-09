@@ -1,9 +1,4 @@
-import java.io.Serializable;
-
-public class Reward implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
+public class Reward {
     private String rewardId;
     private String rewardName;
     private int levelRequirement; // Changed string to int for easier logic

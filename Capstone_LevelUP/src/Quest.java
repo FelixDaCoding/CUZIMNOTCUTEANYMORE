@@ -1,10 +1,7 @@
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class Quest implements Serializable {
-    private static final long serialVersionUID = 1L;
-
+public class Quest {
     private String questId;
     private String questName;
     private int rewardXP;

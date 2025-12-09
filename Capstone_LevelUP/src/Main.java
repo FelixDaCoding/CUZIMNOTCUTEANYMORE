@@ -10,8 +10,7 @@ import java.io.*;
 
 public class Main extends JFrame {
     private static User currentUser = null;
-    private static final Map<String, User> users = new HashMap<>();
-    private static final String USERS_DATA_FILE = "users_data.dat";
+    private static Map<String, String> users = new HashMap<>();
 
     // UI Components
     private JPanel mainPanel;
@@ -30,42 +29,27 @@ public class Main extends JFrame {
     private JLabel welcomeLabel;
     private JTextArea statsTextArea;
 
-    // Workout Panel specific
-    private JComboBox<String> workoutTypeCombo;
+    // Sample data
+    private static final List<DailyChallenge> availableChallenges = Arrays.asList(
+            new DailyChallenge("DC1", "Burn 500 Calories", "Burn 500 calories in workouts today", 500, DailyChallenge.TargetType.CALORIES),
+            new DailyChallenge("DC2", "30 Minute Run", "Complete a 30-minute running session", 30, DailyChallenge.TargetType.RUN_DURATION),
+            new DailyChallenge("DC3", "100 Pushups", "Complete 100 pushups today", 100, DailyChallenge.TargetType.PUSHUPS_REPS),
+            new DailyChallenge("DC4", "200 Crunches", "Complete 200 crunches today", 200, DailyChallenge.TargetType.CRUNCHES_REPS),
+            new DailyChallenge("DC5", "150 Squats", "Complete 150 squats today", 150, DailyChallenge.TargetType.SQUATS_REPS)
+    );
 
-    private void createTestUsers() {
-        System.out.println(">> FORCE UPDATING Test Accounts...");
-        String commonPass = hashPassword("123");
-
-        // Level 1 User (Standard)
-        User u1 = new User("T1", "Novice Tester", "test_lvl1", commonPass);
-        users.put(u1.getUsername(), u1);
-
-        // Level 5 User (Intermediate)
-        User u5 = new User("T5", "Gym Rat", "test_lvl5", commonPass);
-        for(int i=0; i<4; i++) {
-            // Give enough XP to pass the current level threshold
-            u5.gainXP(u5.getLevel() * 500 + 1);
-        }
-        u5.updateDailyChallenge(); // Refresh challenge for new level
-        users.put(u5.getUsername(), u5);
-
-        // Level 10 User (Advanced)
-        User u10 = new User("T10", "Giga Chad", "test_lvl10", commonPass);
-        for(int i=0; i<9; i++) {
-            // Give enough XP to pass the current level threshold
-            u10.gainXP(u10.getLevel() * 500 + 1);
-        }
-        u10.updateDailyChallenge(); // Refresh challenge for new level
-        users.put(u10.getUsername(), u10);
-
-        saveAllUsers();
-    }
+    private static final List<Quest> availableQuests = Arrays.asList(
+            new Quest("First Steps", 200, "WorkoutCount", 5),
+            new Quest("Healthy Beginner", 300, "HealthyMeals", 10),
+            new Quest("Streak Master", 500, "Streak", 7),
+            new Quest("Level Up!", 1000, "LevelUp", 5),
+            new Quest("Fitness Enthusiast", 800, "WorkoutCount", 20),
+            new Quest("Nutrition Expert", 600, "HealthyMeals", 25)
+    );
 
     public Main() {
         initializeUI();
-        loadAllUsers();
-        createTestUsers(); // <--- ADD THIS LINE HERE
+        loadUsers();
     }
 
     private void initializeUI() {
@@ -74,22 +58,19 @@ public class Main extends JFrame {
         setSize(800, 600);
         setLocationRelativeTo(null);
 
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent windowEvent) {
-                saveAllUsers();
-                System.out.println(">> Application closing - all user data saved.");
-            }
-        });
-
+        // Create main panel with CardLayout
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
+        // Create different screens - only create login and register panels initially
         mainPanel.add(createLoginPanel(), "LOGIN");
         mainPanel.add(createRegisterPanel(), "REGISTER");
+
+        // Create empty panels for other screens - they'll be populated when user logs in
         mainPanel.add(createEmptyPanel("DASHBOARD"), "DASHBOARD");
         mainPanel.add(createEmptyPanel("WORKOUT"), "WORKOUT");
         mainPanel.add(createEmptyPanel("MEAL"), "MEAL");
+        mainPanel.add(createEmptyPanel("QUESTS"), "QUESTS");
         mainPanel.add(createEmptyPanel("CHALLENGES"), "CHALLENGES");
 
         add(mainPanel);
@@ -99,7 +80,7 @@ public class Main extends JFrame {
     private JPanel createEmptyPanel(String panelName) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(240, 248, 255));
-        JLabel label = new JLabel(panelName + " - Please log in first", JLabel.CENTER);
+        JLabel label = new JLabel(panelName + " - Please login first", JLabel.CENTER);
         label.setFont(new Font("Arial", Font.BOLD, 16));
         panel.add(label, BorderLayout.CENTER);
         return panel;
@@ -112,12 +93,14 @@ public class Main extends JFrame {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        // Title
         JLabel titleLabel = new JLabel("LevelUP Fitness", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(new Color(0, 102, 204));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         panel.add(titleLabel, gbc);
 
+        // Username
         gbc.gridwidth = 1;
         gbc.gridx = 0; gbc.gridy = 1;
         panel.add(new JLabel("Username:"), gbc);
@@ -125,19 +108,22 @@ public class Main extends JFrame {
         loginUsernameField = new JTextField(15);
         panel.add(loginUsernameField, gbc);
 
+        // Password
         gbc.gridx = 0; gbc.gridy = 2;
         panel.add(new JLabel("Password:"), gbc);
         gbc.gridx = 1;
         loginPasswordField = new JPasswordField(15);
         panel.add(loginPasswordField, gbc);
 
+        // Login Button
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
-        JButton loginButton = new JButton("Log In");
+        JButton loginButton = new JButton("Login");
         loginButton.setBackground(new Color(0, 153, 76));
         loginButton.setForeground(Color.WHITE);
         loginButton.addActionListener(e -> handleLogin());
         panel.add(loginButton, gbc);
 
+        // Register Link
         gbc.gridy = 4;
         JButton registerLink = new JButton("Don't have an account? Register here");
         registerLink.setBorderPainted(false);
@@ -156,12 +142,14 @@ public class Main extends JFrame {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        // Title
         JLabel titleLabel = new JLabel("Create Account", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(new Color(0, 102, 204));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         panel.add(titleLabel, gbc);
 
+        // Name
         gbc.gridwidth = 1;
         gbc.gridx = 0; gbc.gridy = 1;
         panel.add(new JLabel("Full Name:"), gbc);
@@ -169,18 +157,21 @@ public class Main extends JFrame {
         registerNameField = new JTextField(15);
         panel.add(registerNameField, gbc);
 
+        // Username
         gbc.gridx = 0; gbc.gridy = 2;
         panel.add(new JLabel("Username:"), gbc);
         gbc.gridx = 1;
         registerUsernameField = new JTextField(15);
         panel.add(registerUsernameField, gbc);
 
+        // Password
         gbc.gridx = 0; gbc.gridy = 3;
         panel.add(new JLabel("Password:"), gbc);
         gbc.gridx = 1;
         registerPasswordField = new JPasswordField(15);
         panel.add(registerPasswordField, gbc);
 
+        // Register Button
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         JButton registerButton = new JButton("Register");
         registerButton.setBackground(new Color(0, 102, 204));
@@ -188,8 +179,9 @@ public class Main extends JFrame {
         registerButton.addActionListener(e -> handleRegistration());
         panel.add(registerButton, gbc);
 
+        // Back to Login
         gbc.gridy = 5;
-        JButton backButton = new JButton("Back to Log In");
+        JButton backButton = new JButton("Back to Login");
         backButton.setBorderPainted(false);
         backButton.setContentAreaFilled(false);
         backButton.setForeground(new Color(0, 102, 204));
@@ -199,28 +191,15 @@ public class Main extends JFrame {
         return panel;
     }
 
-    private JPanel createHeaderPanel(String title, Color backgroundColor, Runnable backAction) {
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(backgroundColor);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        titleLabel.setForeground(Color.WHITE);
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-
-        JButton backButton = new JButton("Back to Dashboard");
-        backButton.addActionListener(e -> backAction.run());
-        headerPanel.add(backButton, BorderLayout.EAST);
-
-        return headerPanel;
-    }
-
     private void createDashboardPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(240, 248, 255));
 
-        JPanel headerPanel = createHeaderPanel("Dashboard", new Color(0, 102, 204), this::showDashboard);
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 102, 204));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
         welcomeLabel = new JLabel("Welcome, User!");
         welcomeLabel.setFont(new Font("Arial", Font.BOLD, 20));
         welcomeLabel.setForeground(Color.WHITE);
@@ -228,22 +207,21 @@ public class Main extends JFrame {
 
         JButton logoutButton = new JButton("Logout");
         logoutButton.addActionListener(e -> handleLogout());
-        headerPanel.remove(1);
         headerPanel.add(logoutButton, BorderLayout.EAST);
 
-        JPanel navPanel = new JPanel(new GridLayout(2, 2, 10, 10)); // Adjusted grid
+        // Navigation Menu
+        JPanel navPanel = new JPanel(new GridLayout(2, 3, 10, 10));
         navPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         navPanel.setBackground(new Color(240, 248, 255));
 
-        // Removed "View Quests" from menu
         String[] menuItems = {
-                "View Stats", "Log Workout",
-                "Log Meal", "Challenges", "Workout History"
+                "View Stats", "Log Workout", "Log Meal",
+                "View Quests", "Challenges", "Workout History"
         };
 
         Color[] colors = {
-                new Color(0, 153, 76), new Color(204, 0, 0),
-                new Color(255, 153, 0), new Color(0, 102, 204), new Color(153, 0, 153)
+                new Color(0, 153, 76), new Color(204, 0, 0), new Color(255, 153, 0),
+                new Color(102, 0, 204), new Color(0, 102, 204), new Color(153, 0, 153)
         };
 
         for (int i = 0; i < menuItems.length; i++) {
@@ -255,6 +233,7 @@ public class Main extends JFrame {
             navPanel.add(menuButton);
         }
 
+        // Stats Area
         statsTextArea = new JTextArea();
         statsTextArea.setEditable(false);
         statsTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
@@ -265,6 +244,7 @@ public class Main extends JFrame {
         panel.add(navPanel, BorderLayout.CENTER);
         panel.add(statsScrollPane, BorderLayout.SOUTH);
 
+        // Replace the empty dashboard panel with the real one
         mainPanel.add(panel, "DASHBOARD");
     }
 
@@ -272,123 +252,80 @@ public class Main extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(240, 248, 255));
 
-        JPanel headerPanel = createHeaderPanel("Log Workout", new Color(204, 0, 0), this::showDashboard);
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(204, 0, 0));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // UPDATED: Changed grid rows from 6 to 7 to accommodate the new "Category" dropdown
-        JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
+        JLabel titleLabel = new JLabel("Log Workout");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+
+        JButton backButton = new JButton("Back to Dashboard");
+        backButton.addActionListener(e -> showDashboard());
+        headerPanel.add(backButton, BorderLayout.EAST);
+
+        // Workout Form
+        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         formPanel.setBackground(new Color(240, 248, 255));
 
-        // 1. NEW: Category Dropdown (The Logic Controller)
-        JComboBox<String> categoryCombo = new JComboBox<>(new String[]{"Select Type...", "Cardio", "Strength"});
-
-        // Existing Exercise Name Dropdown
-        workoutTypeCombo = new JComboBox<>();
-        populateWorkoutCombo();
-
-        // Input Fields
+        JComboBox<String> workoutTypeCombo = new JComboBox<>(new String[]{"Cardio", "Strength"});
+        JTextField nameField = new JTextField();
         JTextField durationField = new JTextField();
         JTextField repsField = new JTextField();
         JTextField setsField = new JTextField();
         JComboBox<String> intensityCombo = new JComboBox<>(new String[]{"Low", "Medium", "High"});
 
-        // 2. NEW: Default State - Disable everything initially
-        disableField(durationField);
-        disableField(repsField);
-        disableField(setsField);
-
-        // 3. NEW: The Logic Listener
-        categoryCombo.addActionListener(e -> {
-            String selected = (String) categoryCombo.getSelectedItem();
-            if ("Cardio".equals(selected)) {
-                enableField(durationField);
-                disableField(repsField);
-                disableField(setsField);
-            } else if ("Strength".equals(selected)) {
-                disableField(durationField);
-                enableField(repsField);
-                enableField(setsField);
-            } else {
-                disableField(durationField);
-                disableField(repsField);
-                disableField(setsField);
-            }
-        });
-
-        // Add components to Grid (Order matters!)
-        formPanel.add(new JLabel("Category:")); // New Row
-        formPanel.add(categoryCombo);
-
-        formPanel.add(new JLabel("Select Exercise:"));
+        formPanel.add(new JLabel("Workout Type:"));
         formPanel.add(workoutTypeCombo);
-
+        formPanel.add(new JLabel("Workout Name:"));
+        formPanel.add(nameField);
         formPanel.add(new JLabel("Duration (mins):"));
         formPanel.add(durationField);
-
-        formPanel.add(new JLabel("Reps:"));
+        formPanel.add(new JLabel("Reps (Strength only):"));
         formPanel.add(repsField);
-
-        formPanel.add(new JLabel("Sets:"));
+        formPanel.add(new JLabel("Sets (Strength only):"));
         formPanel.add(setsField);
-
         formPanel.add(new JLabel("Intensity:"));
         formPanel.add(intensityCombo);
 
         JButton logButton = new JButton("Log Workout");
         logButton.setBackground(new Color(0, 153, 76));
         logButton.setForeground(Color.WHITE);
-
         logButton.addActionListener(e -> {
-            String selectedExercise = (String) workoutTypeCombo.getSelectedItem();
+            String type = (String) workoutTypeCombo.getSelectedItem();
+            String name = nameField.getText();
             String intensity = (String) intensityCombo.getSelectedItem();
-            String category = (String) categoryCombo.getSelectedItem();
-
-            // Basic validation
-            if ("Select Type...".equals(category)) {
-                JOptionPane.showMessageDialog(this, "Please select a Category (Cardio/Strength).");
-                return;
-            }
 
             try {
-                int duration = 0, reps = 0, sets = 0;
-
-                // Only parse fields if they are explicitly enabled
-                if (durationField.isEnabled() && !durationField.getText().isEmpty())
-                    duration = Integer.parseInt(durationField.getText());
-
-                if (repsField.isEnabled() && !repsField.getText().isEmpty())
-                    reps = Integer.parseInt(repsField.getText());
-
-                if (setsField.isEnabled() && !setsField.getText().isEmpty())
-                    sets = Integer.parseInt(setsField.getText());
-
                 Workout workout;
-                // Logic: If duration is set (Cardio), use that constructor.
-                // Otherwise use Reps/Sets (Strength).
-                if (duration > 0) {
-                    workout = new Workout(selectedExercise, duration, intensity);
+                if ("Cardio".equals(type)) {
+                    int duration = Integer.parseInt(durationField.getText());
+                    workout = new Workout(name, duration, intensity);
                 } else {
-                    workout = new Workout(selectedExercise, reps, sets, intensity);
+                    int reps = Integer.parseInt(repsField.getText());
+                    int sets = Integer.parseInt(setsField.getText());
+                    workout = new Workout(name, reps, sets, intensity);
                 }
 
                 int xpGained = currentUser.logWorkout(workout);
-                autoSave();
-
                 JOptionPane.showMessageDialog(this,
                         "Workout logged successfully!\n" +
                                 "Calories burned: " + workout.getCaloriesBurned() + "\n" +
                                 "XP gained: " + xpGained,
                         "Success", JOptionPane.INFORMATION_MESSAGE);
 
-                // Reset fields
-                categoryCombo.setSelectedIndex(0); // This triggers the listener to disable everything again
+                // Clear fields
+                nameField.setText("");
                 durationField.setText("");
                 repsField.setText("");
                 setsField.setText("");
 
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this,
-                        "Please enter valid numbers.",
+                        "Please enter valid numbers for duration/reps/sets",
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
@@ -397,139 +334,271 @@ public class Main extends JFrame {
         panel.add(formPanel, BorderLayout.CENTER);
         panel.add(logButton, BorderLayout.SOUTH);
 
+        // Replace the empty workout panel with the real one
         mainPanel.add(panel, "WORKOUT");
-    }
-
-    // --- UI Helper Methods ---
-
-    private void enableField(JTextField field) {
-        field.setEnabled(true);
-        field.setBackground(Color.WHITE);
-    }
-
-    private void disableField(JTextField field) {
-        field.setEnabled(false);
-        field.setText(""); // Clears data to prevent accidental submission
-        field.setBackground(new Color(229, 229, 229)); // Light grey visual cue
-    }
-
-    private void populateWorkoutCombo() {
-        if (currentUser == null) return;
-        workoutTypeCombo.removeAllItems();
-
-        DailyChallenge dc = currentUser.getDailyChallenge();
-        if (dc != null && dc.getTasks() != null) {
-            for (ChallengeTask task : dc.getTasks()) {
-                // IMPORTANT: Filter out "Calories" or non-exercise tasks if you wish
-                if (!task.getTaskName().equalsIgnoreCase("Calories") &&
-                        !task.getTaskName().equalsIgnoreCase("Steps")) {
-                    workoutTypeCombo.addItem(task.getTaskName());
-                }
-            }
-        }
-        // Fallback option in case list is empty or logic fails
-        workoutTypeCombo.addItem("Other Workout");
     }
 
     private void createMealPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(240, 248, 255));
 
-        JPanel headerPanel = createHeaderPanel("Log Meal", new Color(255, 153, 0), this::showDashboard);
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(255, 153, 0));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JPanel mainContainer = new JPanel(new CardLayout());
-        mainContainer.setBackground(new Color(240, 248, 255));
+        JLabel titleLabel = new JLabel("Log Meal");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        // Simplified Meal Panel for now (restoring complex one makes file huge)
-        // You can paste your complex meal panel logic back here if you have it saved
-        JPanel simpleForm = new JPanel(new GridLayout(3, 2));
-        JTextField mealNameField = new JTextField();
+        JButton backButton = new JButton("Back to Dashboard");
+        backButton.addActionListener(e -> showDashboard());
+        headerPanel.add(backButton, BorderLayout.EAST);
+
+        // Meal Form
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        formPanel.setBackground(new Color(240, 248, 255));
+
+        JTextField nameField = new JTextField();
         JTextField caloriesField = new JTextField();
-        JButton logBtn = new JButton("Log Meal");
+        JComboBox<String> mealTypeCombo = new JComboBox<>(
+                new String[]{"Breakfast", "Lunch", "Dinner", "Snack"});
 
-        simpleForm.add(new JLabel("Meal Name:")); simpleForm.add(mealNameField);
-        simpleForm.add(new JLabel("Calories:")); simpleForm.add(caloriesField);
-        simpleForm.add(new JLabel("")); simpleForm.add(logBtn);
+        formPanel.add(new JLabel("Meal Name:"));
+        formPanel.add(nameField);
+        formPanel.add(new JLabel("Calories:"));
+        formPanel.add(caloriesField);
+        formPanel.add(new JLabel("Meal Type:"));
+        formPanel.add(mealTypeCombo);
+        formPanel.add(new JLabel("")); // Empty cell
+        formPanel.add(new JLabel("")); // Empty cell
 
-        logBtn.addActionListener(e -> {
+        JButton logButton = new JButton("Log Meal");
+        logButton.setBackground(new Color(0, 153, 76));
+        logButton.setForeground(Color.WHITE);
+        logButton.addActionListener(e -> {
             try {
-                int cal = Integer.parseInt(caloriesField.getText());
-                Meal m = new Meal(mealNameField.getText(), cal, "Snack");
-                currentUser.logMeal(m);
-                JOptionPane.showMessageDialog(this, "Meal Logged!");
-                autoSave();
-            } catch(Exception ex) { JOptionPane.showMessageDialog(this, "Invalid Input"); }
+                String name = nameField.getText();
+                int calories = Integer.parseInt(caloriesField.getText());
+                String mealType = (String) mealTypeCombo.getSelectedItem();
+
+                Meal meal = new Meal(name, calories, mealType);
+                int xpGained = currentUser.logMeal(meal);
+
+                String message = "Meal logged successfully!\n" +
+                        "Healthy: " + (meal.isHealthy() ? "Yes" : "No");
+                if (meal.isHealthy()) {
+                    message += "\nXP gained: " + xpGained;
+                }
+
+                JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                // Clear fields
+                nameField.setText("");
+                caloriesField.setText("");
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Please enter valid calories number",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
 
         panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(simpleForm, BorderLayout.CENTER);
+        panel.add(formPanel, BorderLayout.CENTER);
+        panel.add(logButton, BorderLayout.SOUTH);
+
+        // Replace the empty meal panel with the real one
         mainPanel.add(panel, "MEAL");
+    }
+
+    private void createQuestsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(240, 248, 255));
+
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(102, 0, 204));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel titleLabel = new JLabel("Active Quests");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+
+        JButton backButton = new JButton("Back to Dashboard");
+        backButton.addActionListener(e -> showDashboard());
+        headerPanel.add(backButton, BorderLayout.EAST);
+
+        JButton claimButton = new JButton("Claim Completed Quests");
+        claimButton.addActionListener(e -> {
+            currentUser.checkAndClaimQuests();
+            updateQuestsPanel(panel);
+        });
+        headerPanel.add(claimButton, BorderLayout.CENTER);
+
+        // Quests List
+        updateQuestsPanel(panel);
+
+        // Replace the empty quests panel with the real one
+        mainPanel.add(panel, "QUESTS");
+    }
+
+    private void updateQuestsPanel(JPanel panel) {
+        // Remove existing content except header
+        Component[] components = panel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JScrollPane) {
+                panel.remove(comp);
+            }
+        }
+
+        JPanel questsPanel = new JPanel();
+        questsPanel.setLayout(new BoxLayout(questsPanel, BoxLayout.Y_AXIS));
+        questsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        questsPanel.setBackground(new Color(240, 248, 255));
+
+        if (currentUser == null) {
+            JLabel noUserLabel = new JLabel("Please login to view quests.");
+            noUserLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            questsPanel.add(noUserLabel);
+        } else {
+            List<Quest> activeQuests = currentUser.getActiveQuests();
+
+            if (activeQuests.isEmpty()) {
+                JLabel noQuestsLabel = new JLabel("No active quests available.");
+                noQuestsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                questsPanel.add(noQuestsLabel);
+            } else {
+                for (Quest quest : activeQuests) {
+                    JPanel questPanel = new JPanel(new BorderLayout());
+                    questPanel.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(Color.GRAY),
+                            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                    ));
+                    questPanel.setBackground(quest.isClaimed() ? Color.LIGHT_GRAY : Color.WHITE);
+
+                    JLabel nameLabel = new JLabel(quest.getQuestName());
+                    nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+
+                    JTextArea detailsArea = new JTextArea(
+                            "Target: " + quest.getTargetAmount() + " " + quest.getQuestType() + "\n" +
+                                    "Reward: " + quest.getRewardXP() + " XP\n" +
+                                    "Status: " + (quest.isClaimed() ? "Claimed" :
+                                    (quest.checkCompletion(currentUser) ? "Ready to Claim" : "In Progress")) + "\n" +
+                                    "Time Left: " + quest.getTimeRemaining()
+                    );
+                    detailsArea.setEditable(false);
+                    detailsArea.setBackground(quest.isClaimed() ? Color.LIGHT_GRAY : Color.WHITE);
+
+                    questPanel.add(nameLabel, BorderLayout.NORTH);
+                    questPanel.add(detailsArea, BorderLayout.CENTER);
+
+                    questsPanel.add(questPanel);
+                    questsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                }
+            }
+        }
+
+        JScrollPane scrollPane = new JScrollPane(questsPanel);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.revalidate();
+        panel.repaint();
     }
 
     private void createChallengesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(240, 248, 255));
 
-        JPanel headerPanel = createHeaderPanel("Daily Challenge", new Color(0, 102, 204), this::showDashboard);
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 102, 204));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel titleLabel = new JLabel("Daily Challenge");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+
+        JButton backButton = new JButton("Back to Dashboard");
+        backButton.addActionListener(e -> showDashboard());
+        headerPanel.add(backButton, BorderLayout.EAST);
+
+        // Challenge Content
         JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         contentPanel.setBackground(new Color(240, 248, 255));
 
-        if (currentUser != null && currentUser.getDailyChallenge() != null) {
+        if (currentUser == null) {
+            contentPanel.add(new JLabel("Please login to view daily challenge."), BorderLayout.CENTER);
+        } else {
             DailyChallenge challenge = currentUser.getDailyChallenge();
 
-            StringBuilder tasksStr = new StringBuilder();
-            if (challenge.getTasks() != null) {
-                for (ChallengeTask task : challenge.getTasks()) {
-                    String check = task.isComplete() ? "[x] " : "[ ] ";
-                    tasksStr.append(check).append(task.getTaskName())
-                            .append(": ").append(task.getProgressDisplay()).append("\n");
-                }
-            }
+            if (challenge == null) {
+                contentPanel.add(new JLabel("No active daily challenge."), BorderLayout.CENTER);
+            } else {
+                JPanel challengePanel = new JPanel(new GridLayout(0, 1, 10, 10));
+                challengePanel.setBackground(new Color(240, 248, 255));
 
-            JTextArea challengeInfo = new JTextArea(
-                    "Challenge: " + challenge.getChallengeName() + "\n\n" +
-                            "Description: " + challenge.getDescription() + "\n\n" +
-                            "Tasks:\n" + tasksStr.toString() + "\n" +
-                            "Time Left: " + challenge.displayTimer()
-            );
-            challengeInfo.setFont(new Font("Monospaced", Font.PLAIN, 14));
-            challengeInfo.setEditable(false);
-            contentPanel.add(new JScrollPane(challengeInfo), BorderLayout.CENTER);
+                JLabel nameLabel = new JLabel(challenge.getChallengeName());
+                nameLabel.setFont(new Font("Arial", Font.BOLD, 18));
+
+                JTextArea descArea = new JTextArea(challenge.getDescription());
+                descArea.setEditable(false);
+                descArea.setBackground(new Color(240, 248, 255));
+
+                JProgressBar progressBar = new JProgressBar(0, (int) challenge.getTargetValue());
+                progressBar.setValue((int) challenge.getCurrentProgress());
+                progressBar.setStringPainted(true);
+                progressBar.setString(challenge.getProgressString());
+
+                JLabel statusLabel = new JLabel("Status: " +
+                        (challenge.isCompleted() ? "COMPLETED! 🎉" : "In Progress"));
+                statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
+                statusLabel.setForeground(challenge.isCompleted() ? new Color(0, 153, 76) : Color.BLACK);
+
+                JLabel rewardLabel = new JLabel("Reward: 500 XP");
+
+                challengePanel.add(nameLabel);
+                challengePanel.add(descArea);
+                challengePanel.add(progressBar);
+                challengePanel.add(statusLabel);
+                challengePanel.add(rewardLabel);
+
+                contentPanel.add(challengePanel, BorderLayout.CENTER);
+            }
         }
 
         panel.add(headerPanel, BorderLayout.NORTH);
         panel.add(contentPanel, BorderLayout.CENTER);
+
+        // Replace the empty challenges panel with the real one
         mainPanel.add(panel, "CHALLENGES");
     }
 
-    private static void loadAllUsers() {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(USERS_DATA_FILE))) {
-            Map<String, User> loaded = (Map<String, User>) ois.readObject();
-            users.clear();
-            users.putAll(loaded);
-        } catch (Exception e) {}
+    // Navigation methods
+    private void showLoginScreen() {
+        cardLayout.show(mainPanel, "LOGIN");
+        if (loginUsernameField != null) loginUsernameField.setText("");
+        if (loginPasswordField != null) loginPasswordField.setText("");
     }
 
-    private static void saveAllUsers() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USERS_DATA_FILE))) {
-            oos.writeObject(users);
-        } catch (IOException e) {}
+    private void showRegisterScreen() {
+        cardLayout.show(mainPanel, "REGISTER");
+        if (registerNameField != null) registerNameField.setText("");
+        if (registerUsernameField != null) registerUsernameField.setText("");
+        if (registerPasswordField != null) registerPasswordField.setText("");
     }
 
-    private void autoSave() {
-        if (currentUser != null) {
-            users.put(currentUser.getUsername(), currentUser);
-            saveAllUsers();
-        }
-    }
-
-    private void showLoginScreen() { cardLayout.show(mainPanel, "LOGIN"); loginPasswordField.setText(""); }
-    private void showRegisterScreen() { cardLayout.show(mainPanel, "REGISTER"); registerPasswordField.setText(""); }
     private void showDashboard() {
+        // Make sure all panels are created before showing dashboard
         if (currentUser != null) {
             createDashboardPanel();
-            createWorkoutPanel(); // Recreates it to refresh the dropdown
+            createWorkoutPanel();
             createMealPanel();
+            createQuestsPanel();
             createChallengesPanel();
         }
         cardLayout.show(mainPanel, "DASHBOARD");
@@ -538,80 +607,229 @@ public class Main extends JFrame {
 
     private void updateDashboard() {
         if (currentUser != null) {
-            currentUser.updateDailyChallenge();
-
             welcomeLabel.setText("Welcome, " + currentUser.getUsername() + "!");
+
             StringBuilder stats = new StringBuilder();
+            stats.append("=== USER STATISTICS ===\n\n");
             stats.append("Level: ").append(currentUser.getLevel()).append("\n");
-            stats.append("XP: ").append(currentUser.getXp()).append("\n");
-            stats.append("Streak: ").append(currentUser.getCurrentStreak().getCurrentStreak()).append(" Days\n");
-            stats.append("Weekly Mins: ").append(currentUser.getTotalWeeklyMinutes());
+            stats.append("XP: ").append(currentUser.getXp()).append("/").append(currentUser.getLevel() * 500).append("\n");
+            stats.append("Total Workouts: ").append(currentUser.getTotalWorkouts()).append("\n");
+            stats.append("Healthy Meals: ").append(currentUser.getTotalHealthyMeals()).append("\n");
+            stats.append("Current Streak: ").append(currentUser.getCurrentStreak().getCurrentStreak()).append(" days\n");
+            stats.append("Streak Multiplier: ").append(currentUser.getCurrentStreak().getMultiplier()).append("x\n");
+            stats.append("Active Quests: ").append(currentUser.getActiveQuests().size()).append("\n");
+            stats.append("Earned Rewards: ").append(currentUser.getEarnedRewards().size()).append("\n");
+
+            if (currentUser.getDailyChallenge() != null) {
+                DailyChallenge dc = currentUser.getDailyChallenge();
+                stats.append("\nDaily Challenge: ").append(dc.getChallengeName()).append("\n");
+                stats.append("Progress: ").append(dc.getProgressString()).append("\n");
+                stats.append("Status: ").append(dc.isCompleted() ? "COMPLETED" : "In Progress").append("\n");
+            }
+
             statsTextArea.setText(stats.toString());
         }
     }
 
+    // Event Handlers
     private void handleLogin() {
-        String u = loginUsernameField.getText();
-        String p = new String(loginPasswordField.getPassword());
-        if (users.containsKey(u) && verifyPassword(p, users.get(u).getPassword())) {
-            currentUser = users.get(u);
-            showDashboard();
-        } else {
-            JOptionPane.showMessageDialog(this, "Invalid Login");
+        String username = loginUsernameField.getText();
+        String password = new String(loginPasswordField.getPassword());
+
+        if (users.containsKey(username)) {
+            String hashed = users.get(username);
+            if (verifyPassword(password, hashed)) {
+                currentUser = User.authenticate(username, hashed);
+                if (currentUser != null) {
+                    initializeUserContent();
+                    showDashboard();
+                    return;
+                }
+            }
         }
+        JOptionPane.showMessageDialog(this, "Invalid username or password", "Login Failed", JOptionPane.ERROR_MESSAGE);
     }
 
     private void handleRegistration() {
-        String u = registerUsernameField.getText();
-        String p = new String(registerPasswordField.getPassword());
-        if (users.containsKey(u)) {
-            JOptionPane.showMessageDialog(this, "Username Taken");
+        String name = registerNameField.getText();
+        String username = registerUsernameField.getText();
+        String password = new String(registerPasswordField.getPassword());
+
+        if (name.isEmpty() || username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        User newUser = User.register(registerNameField.getText(), u, hashPassword(p));
+
+        if (users.containsKey(username)) {
+            JOptionPane.showMessageDialog(this, "Username already taken", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String hashedPassword = hashPassword(password);
+        User newUser = User.register(name, username, hashedPassword);
+
         if (newUser != null) {
-            users.put(u, newUser);
-            autoSave();
-            JOptionPane.showMessageDialog(this, "Registered!");
+            users.put(username, hashedPassword);
+            saveUserToFile(newUser);
+            JOptionPane.showMessageDialog(this, "Account created successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
             showLoginScreen();
+        } else {
+            JOptionPane.showMessageDialog(this, "Registration failed", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void handleLogout() {
-        autoSave();
         currentUser = null;
         showLoginScreen();
     }
 
-    private void showWorkoutHistory() {
-        if (currentUser == null) return;
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== Workout History ===\n");
-        for(Workout w : currentUser.getWorkoutLog()) {
-            sb.append(w.getWorkoutName()).append(" | ").append(w.getType()).append(" | ").append(w.getDate()).append("\n");
+    private void initializeUserContent() {
+        if (currentUser.getActiveQuests().isEmpty()) {
+            currentUser.addQuest(availableQuests.get(0));
+            currentUser.addQuest(availableQuests.get(1));
         }
-        JTextArea textArea = new JTextArea(sb.toString());
-        textArea.setEditable(false);
-        JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "Workout History", JOptionPane.INFORMATION_MESSAGE);
+
+        if (currentUser.getDailyChallenge() == null) {
+            DailyChallenge randomChallenge = availableChallenges.get(
+                    new Random().nextInt(availableChallenges.size())
+            );
+            currentUser.setDailyChallenge(randomChallenge);
+        }
     }
 
-    private static String hashPassword(String password) { return Integer.toString(password.hashCode()); }
-    private static boolean verifyPassword(String password, String storedHash) { return Integer.toString(password.hashCode()).equals(storedHash); }
-
-    public static void main(String[] args) { SwingUtilities.invokeLater(() -> new Main().setVisible(true)); }
-
+    // Menu Button Listener
     private class MenuButtonListener implements ActionListener {
-        private String item;
-        public MenuButtonListener(String item) { this.item = item; }
+        private String menuItem;
+
+        public MenuButtonListener(String menuItem) {
+            this.menuItem = menuItem;
+        }
+
         @Override
         public void actionPerformed(ActionEvent e) {
-            switch (item) {
-                case "View Stats": updateDashboard(); break;
-                case "Log Workout": cardLayout.show(mainPanel, "WORKOUT"); break;
-                case "Log Meal": cardLayout.show(mainPanel, "MEAL"); break;
-                case "Challenges": cardLayout.show(mainPanel, "CHALLENGES"); break;
-                case "Workout History": showWorkoutHistory(); break;
+            switch (menuItem) {
+                case "View Stats":
+                    updateDashboard();
+                    break;
+                case "Log Workout":
+                    cardLayout.show(mainPanel, "WORKOUT");
+                    break;
+                case "Log Meal":
+                    cardLayout.show(mainPanel, "MEAL");
+                    break;
+                case "View Quests":
+                    cardLayout.show(mainPanel, "QUESTS");
+                    break;
+                case "Challenges":
+                    cardLayout.show(mainPanel, "CHALLENGES");
+                    break;
+                case "Workout History":
+                    showWorkoutHistory();
+                    break;
             }
         }
+    }
+
+    private void showWorkoutHistory() {
+        if (currentUser == null) {
+            JOptionPane.showMessageDialog(this, "Please login to view workout history.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        List<Workout> workouts = currentUser.getWorkoutLog();
+
+        StringBuilder history = new StringBuilder();
+        history.append("=== WORKOUT HISTORY ===\n\n");
+        history.append("Total workouts: ").append(workouts.size()).append("\n\n");
+
+        if (workouts.isEmpty()) {
+            history.append("No workouts logged yet.");
+        } else {
+            for (int i = 0; i < Math.min(workouts.size(), 10); i++) {
+                Workout workout = workouts.get(i);
+                history.append("• ").append(workout.getWorkoutName())
+                        .append(" | ").append(workout.getType())
+                        .append(" | ").append(String.format("%.0f", workout.getCaloriesBurned())).append(" cal")
+                        .append(" | ").append(workout.getDurationMins()).append(" mins\n");
+            }
+        }
+
+        JTextArea textArea = new JTextArea(history.toString());
+        textArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(400, 300));
+
+        JOptionPane.showMessageDialog(this, scrollPane, "Workout History", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // Authentication methods (unchanged)
+    private static String hashPassword(String password) {
+        try {
+            SecureRandom random = new SecureRandom();
+            byte[] salt = new byte[16];
+            random.nextBytes(salt);
+
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(salt);
+            byte[] hashedBytes = md.digest(password.getBytes());
+
+            byte[] combined = new byte[salt.length + hashedBytes.length];
+            System.arraycopy(salt, 0, combined, 0, salt.length);
+            System.arraycopy(hashedBytes, 0, combined, salt.length, hashedBytes.length);
+
+            return Base64.getEncoder().encodeToString(combined);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
+    }
+
+    private static boolean verifyPassword(String password, String storedHash) {
+        try {
+            byte[] combined = Base64.getDecoder().decode(storedHash);
+            byte[] salt = new byte[16];
+            byte[] storedHashBytes = new byte[combined.length - 16];
+
+            System.arraycopy(combined, 0, salt, 0, 16);
+            System.arraycopy(combined, 16, storedHashBytes, 0, storedHashBytes.length);
+
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(salt);
+            byte[] testHash = md.digest(password.getBytes());
+
+            return MessageDigest.isEqual(testHash, storedHashBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
+    }
+
+    private static void loadUsers() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("users.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    users.put(parts[0], parts[1]);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // File not found means no users yet
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Error loading users: " + e.getMessage());
+        }
+    }
+
+    private static void saveUserToFile(User user) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("users.txt", true))) {
+            writer.write(user.getUsername() + "," + user.getPassword());
+            writer.newLine();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Error saving user: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new Main().setVisible(true);
+        });
     }
 }
