@@ -73,7 +73,7 @@ public class Test extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
         setLocationRelativeTo(null);
-        setTitle("LevelUP Fitness");
+        setTitle("LevelUP");
 
         // --- INITIALIZATION ---
         loadCredentials();
